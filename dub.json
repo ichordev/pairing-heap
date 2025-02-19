@@ -1,0 +1,10 @@
+{
+	"name": "pairing-heap",
+	"description": "A pairing heap implementation.",
+	"authors": ["Aya Partridge"],
+	"license": "BSL-1.0",
+	
+	"dependencies": {"memterface": "~>1.0"},
+	"targetType": "staticLibrary",
+	"targetPath": "lib",
+}
