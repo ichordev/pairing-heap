@@ -20,7 +20,7 @@ It can also be used more like a set than a hash map by setting `Value` to `void`
 and elements can be sorted by key by using `.key` instead of `.value` in the `less` function.
 
 Params:
-	Key = The key to find elements by.
+	Key = The key to index elements with.
 	Value = The value of each element. May be `void`.
 	less = A binary function to compare elements with.
 	PairingHeapAllocator = The allocator type used by the internal `PairingHeap`.
@@ -67,46 +67,65 @@ struct PriorityMap(Key, Value, alias less="a.value < b.value", PairingHeapAlloca
 		@property const(Heap)* heap() const nothrow @nogc pure @safe => &_heap;
 		@property const(Map)* map() const nothrow @nogc pure @safe => &_map;
 		
+		///Returns: The number of elements in the structure.
 		@property size_t length() const nothrow @nogc pure @safe{
 			assert(_heap.length == _map.length, "`heap` and `map` have different lengths. Please file a bug report");
 			return _heap.length;
 		}
 		
+		///Returns: `true` if the structure is empty.
 		@property bool empty() const nothrow @nogc pure @safe{
 			assert(_heap.empty == (_map.length == 0), "`heap` and `map` have different lengths. Please file a bug report");
 			return _heap.empty;
 		}
 		
+		///Get the largest element according to `less`.
 		alias front = _heap.front;
 	}
 	
+	///Removes the largest element.
 	void popFront() nothrow{
 		auto frontValue = _heap.front;
 		_map.remove(frontValue.key);
 		_heap.popFront();
 	}
 	
-	static if(is(typeof(HashMap.rehash)))
+	static if(is(typeof(HashMap.rehash())))
 	void rehash(){
-		_map.rehash;
+		_map.rehash();
 	}
 	
 	static if(!is(Value == void)){
+		/**
+		Inserts `value` into the structure, which can later be indexed by `key`.
+		
+		Does nothing if `key` already existed.
+		*/
 		void insert(const auto ref Key key, Value value) nothrow{
 			if(key !in _map)
 				_map[key] = _heap.insert(KeyValue(key, value));
 		}
 		
-		inout(KeyValue)* opBinaryRight(string op: "in")(const auto ref Key key) inout nothrow @nogc pure @safe{
+		///Returns: a pointer to the value associated with `key`, or `null` if `key` does not exist.
+		inout(Value)* opBinaryRight(string op: "in")(const auto ref Key key) inout nothrow @nogc pure @safe{
 			if(auto node = key in _map)
 				return &node.value.value;
 			return null;
 		}
 		
-		inout(KeyValue) opIndex(const auto ref Key key) inout nothrow @nogc pure @safe =>
+		/**
+		Returns: The value associated with `key`.
+		Throws: `RangeError` if `key` does not exist.
+		*/
+		inout(Value) opIndex()(const auto ref Key key) inout nothrow @nogc pure @safe =>
 			_map[key].value.value;
 		
-		Value opIndexAssign(Value value, const auto ref Key key) nothrow{
+		/**
+		Sets the value associated with `key` to `value`.
+		
+		If `key` didn't exist already, `value` is newly inserted into the structure.
+		*/
+		Value opIndexAssign()(Value value, const auto ref Key key) nothrow{
 			if(auto node = key in _map){
 				_heap.modify(*node, KeyValue(key, value));
 			}else{
@@ -115,16 +134,23 @@ struct PriorityMap(Key, Value, alias less="a.value < b.value", PairingHeapAlloca
 			return value;
 		}
 	}else{
-		void insert(const auto ref Key key) nothrow{
+		///Insert `key` into the structure.
+		void insert()(const auto ref Key key) nothrow{
 			if(key !in _map)
 				_map[key] = _heap.insert(KeyValue(key));
 		}
 		
+		///Returns: `true` if `key` exists.
 		bool opBinaryRight(string op: "in")(const auto ref Key key) inout nothrow @nogc pure @safe =>
 			(key in _map) !is null;
 	}
 	
-	bool remove(const auto ref Key key){
+	/**
+	Removes the value associated with `key` from the structure.
+	
+	Returns: `true` if `key` existed and was removed, or `false` if `key` did not exist.
+	*/
+	bool remove()(const auto ref Key key){
 		if(auto node = key in _map){
 			_heap.remove(*node);
 			_map.remove(key);

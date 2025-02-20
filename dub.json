@@ -1,6 +1,6 @@
 {
 	"name": "pairing-heap",
-	"description": "A pairing heap implementation.",
+	"description": "Pairing heaps & priority maps. Supports using custom allocators.",
 	"authors": ["Aya Partridge"],
 	"license": "BSL-1.0",
 	

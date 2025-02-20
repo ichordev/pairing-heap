@@ -7,8 +7,19 @@
 module pairing_heap;
 
 import std.algorithm.mutation, std.functional;
-import memterface.iface, memterface.allocator.gc;
+import memterface.allocator.gc, memterface.ctor, memterface.iface;
 
+/**
+A pairing heap (AKA priority queue) implementation.
+
+If `less` is `"a < b"` (the default), then `PairingHeap` defines a max-heap, where `front` returns
+the *largest* element. For a min-heap (where `front` returns the *smallest* element), the `less`
+predicate should be set to `"a > b"`.
+
+`Allocator` allows you to specify a custom allocator to use. By default, the garbage collector is used.
+However, since nodes are manually freed, pointers to `Node`s returned from `insert`  will become dangling
+pointers after they are extracted (via `popFront`) or `remove`d from the heap.
+*/
 struct PairingHeap(Element, alias less="a < b", Allocator=GCAllocator)
 if(isAllocator!Allocator){
 	alias Elem = Element;
@@ -184,30 +195,31 @@ unittest{
 		
 		foreach(_; 0..4){
 			const n = uniform(-1_600, 1_600);
+			
 			nodes ~= heap.insert(n);
 			correctList ~= n;
 		}
 		foreach(_; 0..60){
 			std.random.choice([
-				(){
+				(){ //insert
 					const n = uniform(-1_600, 1_600);
 					
 					nodes ~= heap.insert(n);
 					correctList ~= n;
-				}, (){
+				}, (){ //remove
 					if(nodes.length){
 						const i = uniform(0U, nodes.length);
-						auto nodeVal = nodes[i].value;
+						auto nodeVal = *nodes[i].value;
 						
 						auto f = correctList.findSplit([nodeVal]);
 						correctList = f[0] ~ f[2];
 						heap.remove(nodes[i]);
 						nodes = nodes[0..i] ~ nodes[i+1..$];
 					}
-				}, (){
+				}, (){ //modify
 					if(nodes.length){
 						const i = uniform(0U, nodes.length);
-						auto nodeVal = nodes[i].value;
+						auto nodeVal = *nodes[i].value;
 						
 						const n = uniform(-1_600, 1_600);
 						auto f = correctList.findSplit([nodeVal]);
@@ -233,10 +245,10 @@ unittest{
 		
 		foreach(_; 0..200){
 			std.random.choice([
-				(){
+				(){ //insert
 					const n = uniform(-1_600, 1_600);
 					nodes ~= heap.insert(n);
-				}, (){
+				}, (){ //remove
 					if(nodes.length){
 						const i = uniform(0U, nodes.length);
 						auto nodeVal = nodes[i].value;
@@ -244,7 +256,7 @@ unittest{
 						heap.remove(nodes[i]);
 						nodes = nodes[0..i] ~ nodes[i+1..$];
 					}
-				}, (){
+				}, (){ //modify
 					if(nodes.length){
 						const i = uniform(0U, nodes.length);
 						auto nodeVal = nodes[i].value;
@@ -252,7 +264,7 @@ unittest{
 						const n = uniform(-1_600, 1_600);
 						heap.modify(nodes[i], n);
 					}
-				}, (){
+				}, (){ //front/popFront
 					if(!heap.empty){
 						auto node = heap.frontNode;
 						heap.popFront();
