@@ -94,7 +94,7 @@ if(isAllocator!Allocator){
 	private Node* root;
 	private size_t size;
 	
-	this(Allocator allocator){
+	this()(auto ref Allocator allocator){
 		this.allocator = allocator;
 	}
 	

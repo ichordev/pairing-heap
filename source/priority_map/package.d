@@ -52,12 +52,12 @@ struct PriorityMap(Key, Value, alias less="a.value < b.value", PairingHeapAlloca
 		map = An empty, unique (i.e. not referenced elsewhere), fresly created hash map instance.
 	*/
 	static if(is(HashMap == void)){
-		this(PairingHeapAllocator pairingHeapAllocator){
+		this()(auto ref PairingHeapAllocator pairingHeapAllocator){
 			this._heap = Heap(pairingHeapAllocator);
 			this._map = null;
 		}
 	}else{
-		this(PairingHeapAllocator pairingHeapAllocator, Map map){
+		this()(auto ref PairingHeapAllocator pairingHeapAllocator, auto ref Map map){
 			this._heap = Heap(pairingHeapAllocator);
 			this._map = map;
 		}
