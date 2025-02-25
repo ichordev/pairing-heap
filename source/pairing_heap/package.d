@@ -19,77 +19,15 @@ predicate should be set to `"a > b"`.
 `Allocator` allows you to specify a custom allocator to use. By default, the garbage collector is used.
 However, since nodes are manually freed, pointers to `Node`s returned from `insert`  will become dangling
 pointers after they are extracted (via `popFront`) or `remove`d from the heap.
+
+When copied, the original will be nullified. This is to prevent multiple heaps referencing the same tree
+of nodes. If you wish to pass a `PairingHeap` to a function without it being nullified, then it should be
+passed as `ref`, as a pointer, or be returned from the function.
 */
 struct PairingHeap(Element, alias less="a < b", Allocator=GCAllocator)
 if(isAllocator!Allocator){
 	alias Elem = Element;
-	struct Node{
-		private Elem _value;
-		private Node* _firstChild; ///The node's first child.
-		private Node* _prevSibling, _nextSibling; ///The siblings before and after this node in the doubly-linked list.
-		
-		pragma(inline,true){
-			@property const(Elem)* value() const nothrow @nogc pure @safe => &_value;
-			@property inout(Node)* firstChild() inout nothrow @nogc pure @safe => _firstChild;
-			@property inout(Node)* prevSibling() inout nothrow @nogc pure @safe => _prevSibling;
-			@property inout(Node)* nextSibling() inout nothrow @nogc pure @safe => _nextSibling;
-		}
-		
-		private Node* merge(Node* rhs) nothrow @nogc pure @safe{
-			//if either of the root nodes are `null`, return the opposite one
-			if(&this is null){
-				return rhs;
-			}else if(rhs is null){
-				return &this;
-			}
-			/* To maintain the max-heap invariant, make the node
-			with the higher value the parent of the other node: */
-			Node* parent=&this, child=rhs;
-			if(binaryFun!less(this._value, rhs._value))
-				swap(parent, child);
-			
-			child._nextSibling = parent._firstChild;
-			if(parent._firstChild !is null)
-				parent._firstChild._prevSibling = child;
-			
-			child._prevSibling = parent;
-			parent._firstChild = child;
-			
-			parent._nextSibling = parent._prevSibling = null;
-			
-			return parent;
-		}
-		
-		private Node* twoPassMerge() nothrow @nogc pure @safe{
-			if(&this !is null){
-				Node* tail;
-				Node* next = &this;
-				while(next !is null){
-					Node* a = next;
-					if(Node* b = next._nextSibling){
-						next = b._nextSibling;
-						auto result = a.merge(b);
-						result._prevSibling = tail;
-						tail = result;
-					}else{
-						a._prevSibling = tail;
-						tail = a;
-						break;
-					}
-				}
-				
-				Node* ret;
-				while(tail !is null){
-					next = tail._prevSibling;
-					ret = ret.merge(tail);
-					tail = next;
-				}
-				return ret;
-			}else{
-				return null;
-			}
-		}
-	}
+	alias Node = HeapNode!(Elem, less);
 	private Allocator allocator;
 	private Node* root;
 	private size_t size;
@@ -98,7 +36,7 @@ if(isAllocator!Allocator){
 		this.allocator = allocator;
 	}
 	
-	this(scope ref PairingHeap rhs) nothrow @nogc pure @safe{
+	this(scope ref PairingHeap rhs){
 		this.tupleof[] = rhs.tupleof[];
 		rhs.root = null;
 		rhs.size = 0;
@@ -179,6 +117,79 @@ if(isAllocator!Allocator){
 				node._nextSibling._prevSibling = node._prevSibling;
 			
 			root = root.merge(node);
+		}
+	}
+}
+
+struct HeapNode(Element, alias less){
+	alias Elem = Element;
+	private Elem _value;
+	private HeapNode* _firstChild;
+	private HeapNode* _prevSibling, _nextSibling;
+	
+	pragma(inline,true){
+		///The node's stored value.
+		@property const(Elem)* value() const nothrow @nogc pure @safe => &_value;
+		///The node's first child.
+		@property inout(HeapNode)* firstChild() inout nothrow @nogc pure @safe => _firstChild;
+		///The siblings before this node in the doubly-linked list.
+		@property inout(HeapNode)* prevSibling() inout nothrow @nogc pure @safe => _prevSibling;
+		///The siblings after this node in the doubly-linked list.
+		@property inout(HeapNode)* nextSibling() inout nothrow @nogc pure @safe => _nextSibling;
+	}
+	
+	private HeapNode* merge(HeapNode* rhs) nothrow @nogc pure @safe{
+		//if either of the root nodes are `null`, return the opposite one
+		if(&this is null){
+			return rhs;
+		}else if(rhs is null){
+			return &this;
+		}
+		/* To maintain the max-heap invariant, make the node
+		with the higher value the parent of the other node: */
+		HeapNode* parent=&this, child=rhs;
+		if(binaryFun!less(this._value, rhs._value))
+			swap(parent, child);
+		
+		child._nextSibling = parent._firstChild;
+		if(parent._firstChild !is null)
+			parent._firstChild._prevSibling = child;
+		
+		child._prevSibling = parent;
+		parent._firstChild = child;
+		
+		parent._nextSibling = parent._prevSibling = null;
+		
+		return parent;
+	}
+	
+	private HeapNode* twoPassMerge() nothrow @nogc pure @safe{
+		if(&this !is null){
+			HeapNode* tail;
+			HeapNode* next = &this;
+			while(next !is null){
+				HeapNode* a = next;
+				if(HeapNode* b = next._nextSibling){
+					next = b._nextSibling;
+					auto result = a.merge(b);
+					result._prevSibling = tail;
+					tail = result;
+				}else{
+					a._prevSibling = tail;
+					tail = a;
+					break;
+				}
+			}
+			
+			HeapNode* ret;
+			while(tail !is null){
+				next = tail._prevSibling;
+				ret = ret.merge(tail);
+				tail = next;
+			}
+			return ret;
+		}else{
+			return null;
 		}
 	}
 }

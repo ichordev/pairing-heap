@@ -19,6 +19,10 @@ value come first, set the `less` function to `"a.value > b.value"`.
 It can also be used more like a set than a hash map by setting `Value` to `void`,
 and elements can be sorted by key by using `.key` instead of `.value` in the `less` function.
 
+When copied, the original will be nullified. This is to prevent multiple `PriorityMap`s referencing
+the same `PairingHeap`. If you wish to pass a `PriorityMap` to a function without it being nullified,
+then it should be passed as `ref`, as a pointer, or be returned from the function.
+
 Params:
 	Key = The key to index elements with.
 	Value = The value of each element. May be `void`.
@@ -62,6 +66,11 @@ struct PriorityMap(Key, Value, alias less="a.value < b.value", PairingHeapAlloca
 			this._heap = Heap(pairingHeapAllocator);
 			this._map = map;
 		}
+	}
+	
+	this(scope ref PriorityMap rhs){
+		this.tupleof[] = rhs.tupleof[];
+		rhs._map = Map.init;
 	}
 	
 	pragma(inline,true){
