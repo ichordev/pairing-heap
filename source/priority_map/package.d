@@ -1,9 +1,8 @@
-/+
-+               Copyright 2025 Aya Partridge
-+ Distributed under the Boost Software License, Version 1.0.
-+     (See accompanying file LICENSE_1_0.txt or copy at
-+           http://www.boost.org/LICENSE_1_0.txt)
-+/
+/**
+Copyright: Copyright 2025 — 2026 Aya Partridge.
+	Distributed under the GNU Lesser General Public License, Version 3.
+	(See accompanying file LICENSE.md or copy at https://www.gnu.org/licenses/lgpl-3.0.md)
+*/
 module priority_map;
 
 import memterface.allocator.gc;

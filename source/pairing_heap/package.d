@@ -1,9 +1,8 @@
-/+
-+               Copyright 2025 Aya Partridge
-+ Distributed under the Boost Software License, Version 1.0.
-+     (See accompanying file LICENSE_1_0.txt or copy at
-+           http://www.boost.org/LICENSE_1_0.txt)
-+/
+/**
+Copyright: Copyright 2025 — 2026 Aya Partridge.
+	Distributed under the GNU Lesser General Public License, Version 3.
+	(See accompanying file LICENSE.md or copy at https://www.gnu.org/licenses/lgpl-3.0.md)
+*/
 module pairing_heap;
 
 import std.algorithm.mutation, std.functional;
@@ -62,14 +61,14 @@ if(isAllocator!Allocator){
 	void popFront() nothrow
 	in(root !is null){
 		auto oldRoot = root;
-		root = oldRoot._firstChild.twoPassMerge();
+		root = Node.twoPassMerge(oldRoot._firstChild);
 		allocator.dispose(oldRoot);
 		size--;
 	}
 	
 	Node* insert(Elem value) nothrow{
 		auto newNode = allocator.constructNew!Node(value);
-		root = root.merge(newNode);
+		root = Node.merge(root, newNode);
 		size++;
 		return newNode;
 	}
@@ -86,9 +85,9 @@ if(isAllocator!Allocator){
 			if(node._nextSibling !is null)
 				node._nextSibling._prevSibling = node._prevSibling;
 			
-			root = root.merge(node._firstChild.twoPassMerge());
+			root = Node.merge(root, Node.twoPassMerge(node._firstChild));
 		}else{
-			root = node._firstChild.twoPassMerge();
+			root = Node.twoPassMerge(node._firstChild);
 		}
 	}
 	
@@ -106,7 +105,7 @@ if(isAllocator!Allocator){
 		if(newValueIsLess){
 			removeImpl(node);
 			node._firstChild = null;
-			root = root.merge(node);
+			root = Node.merge(root, node);
 		}else if(node !is root){
 			if(node is node._prevSibling._firstChild)
 				node._prevSibling._firstChild = node._nextSibling;
@@ -116,7 +115,7 @@ if(isAllocator!Allocator){
 			if(node._nextSibling !is null)
 				node._nextSibling._prevSibling = node._prevSibling;
 			
-			root = root.merge(node);
+			root = Node.merge(root, node);
 		}
 	}
 }
@@ -138,17 +137,17 @@ struct HeapNode(Element, alias less){
 		@property inout(HeapNode)* nextSibling() inout nothrow @nogc pure @safe => _nextSibling;
 	}
 	
-	private HeapNode* merge(HeapNode* rhs) nothrow @nogc pure @safe{
+	private static HeapNode* merge(HeapNode* lhs, HeapNode* rhs) nothrow @nogc pure @safe{
 		//if either of the root nodes are `null`, return the opposite one
-		if(&this is null){
+		if(lhs is null){
 			return rhs;
 		}else if(rhs is null){
-			return &this;
+			return lhs;
 		}
 		/* To maintain the max-heap invariant, make the node
 		with the higher value the parent of the other node: */
-		HeapNode* parent=&this, child=rhs;
-		if(binaryFun!less(this._value, rhs._value))
+		HeapNode* parent=lhs, child=rhs;
+		if(binaryFun!less(lhs._value, rhs._value))
 			swap(parent, child);
 		
 		child._nextSibling = parent._firstChild;
@@ -163,15 +162,15 @@ struct HeapNode(Element, alias less){
 		return parent;
 	}
 	
-	private HeapNode* twoPassMerge() nothrow @nogc pure @safe{
-		if(&this !is null){
+	private static HeapNode* twoPassMerge(HeapNode* lhs) nothrow @nogc pure @safe{
+		if(lhs !is null){
 			HeapNode* tail;
-			HeapNode* next = &this;
+			HeapNode* next = lhs;
 			while(next !is null){
 				HeapNode* a = next;
 				if(HeapNode* b = next._nextSibling){
 					next = b._nextSibling;
-					auto result = a.merge(b);
+					auto result = merge(a, b);
 					result._prevSibling = tail;
 					tail = result;
 				}else{
@@ -184,7 +183,7 @@ struct HeapNode(Element, alias less){
 			HeapNode* ret;
 			while(tail !is null){
 				next = tail._prevSibling;
-				ret = ret.merge(tail);
+				ret = merge(ret, tail);
 				tail = next;
 			}
 			return ret;
