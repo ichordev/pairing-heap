@@ -4,7 +4,7 @@
 
 A [pairing heap](https://en.wikipedia.org/wiki/Pairing_heap) (AKA priority queue) implementation.
 
-Pairing heaps have better time complexity than binary heaps (such as the one found in [std.container.binaryheap](https://dlang.org/phobos/std_container_binaryheap.html)) but without the poor real-world performance of Fibonacci heaps, while also allowing you to keep track of individual items inside of the heap. The module `priority_map` provides `PriorityMap`, which utilises the ability to track heap nodes by allowing you to store/query values with by key, and also query the minimum/maximum element stored in the structure.
+Pairing heaps have better time complexity than binary heaps (such as the one found in [std.container.binaryheap](https://dlang.org/phobos/std_container_binaryheap.html)) but without the poor real-world performance of Fibonacci heaps, while also allowing you to keep track of individual items inside of the heap. The `priority_map`  module provides the `PriorityMap` type, which utilises the ability to track heap nodes to allow you to store/query node values by key and to query the minimum/maximum node stored in the structure quickly.
 
 Pairing heaps allocate a separate pointer for each node, so this implementation allows for a custom allocator to be used in order to reduce memory fragmentation. However, most operations in a pairing heap are O(1).
 
